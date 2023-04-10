@@ -9,6 +9,10 @@ const (
 	EXPIRATION_TTL = 30
 )
 
+var (
+	timeNow = time.Now
+)
+
 type Cache interface {
 	Get(key string) (interface{}, bool)
 	Set(key string, value interface{})
@@ -32,7 +36,7 @@ func (lc *localCache) Get(key string) (interface{}, bool) {
 	if !ok {
 		return nil, false
 	}
-	if item.expiryTime.Before(time.Now()) {
+	if item.expiryTime.Before(timeNow()) {
 		delete(lc.items, key)
 		return nil, false
 	}
@@ -43,7 +47,7 @@ func (lc *localCache) Set(key string, value interface{}) {
 	lc.mutex.Lock()
 	defer lc.mutex.Unlock()
 
-	expiryTime := time.Now().Add(EXPIRATION_TTL * time.Second)
+	expiryTime := timeNow().Add(EXPIRATION_TTL * time.Second)
 	lc.items[key] = &cacheItem{value: value, expiryTime: expiryTime}
 }
 

@@ -13,6 +13,10 @@ type LocalCacheTestSuite struct {
 	localcache *localCache
 }
 
+func (s *LocalCacheTestSuite) SetupSuite() {
+	timeNow = func() time.Time { return time.Unix(0, 0) }
+}
+
 func (s *LocalCacheTestSuite) SetupTest() {
 	s.localcache = New().(*localCache)
 }
@@ -42,7 +46,7 @@ func (s *LocalCacheTestSuite) TestExpiration() {
 
 	s.localcache.Set(key, value)
 
-	time.Sleep((EXPIRATION_TTL + 1) * time.Second)
+	timeNow = func() time.Time { return time.Unix(0, 0).Add((EXPIRATION_TTL + 1) * time.Second) }
 
 	s.assertCacheValueNotExists(key)
 }
@@ -54,15 +58,15 @@ func (s *LocalCacheTestSuite) TestOverwriteAndExpiration() {
 
 	s.localcache.Set(key, value1)
 
-	time.Sleep((EXPIRATION_TTL / 2) * time.Second)
+	timeNow = func() time.Time { return time.Unix(0, 0).Add((EXPIRATION_TTL / 2) * time.Second) }
 
 	s.localcache.Set(key, value2)
 
-	time.Sleep(((EXPIRATION_TTL / 2) + 1) * time.Second)
+	timeNow = func() time.Time { return time.Unix(0, 0).Add((EXPIRATION_TTL + 1) * time.Second) }
 
 	s.assertCacheValue(key, value2)
 
-	time.Sleep((EXPIRATION_TTL / 2) * time.Second)
+	timeNow = func() time.Time { return time.Unix(0, 0).Add(((EXPIRATION_TTL * 3 / 2) + 1) * time.Second) }
 
 	s.assertCacheValueNotExists(key)
 }
