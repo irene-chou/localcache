@@ -14,33 +14,39 @@ type Cache interface {
 	Set(key string, value interface{})
 }
 
+type cacheItem struct {
+	value      interface{}
+	expiryTime time.Time
+}
+
 type localCache struct {
-	cacheMap map[string]interface{}
-	mutex    sync.RWMutex
+	items map[string]*cacheItem
+	mutex sync.RWMutex
 }
 
 func (lc *localCache) Get(key string) (interface{}, bool) {
-	lc.mutex.RLock()
-	defer lc.mutex.RUnlock()
+	lc.mutex.Lock()
+	defer lc.mutex.Unlock()
 
-	value, ok := lc.cacheMap[key]
-	return value, ok
+	item, ok := lc.items[key]
+	if !ok {
+		return nil, false
+	}
+	if item.expiryTime.Before(time.Now()) {
+		delete(lc.items, key)
+		return nil, false
+	}
+	return item.value, true
 }
 
 func (lc *localCache) Set(key string, value interface{}) {
 	lc.mutex.Lock()
 	defer lc.mutex.Unlock()
 
-	lc.cacheMap[key] = value
-	time.AfterFunc(EXPIRATION_TTL*time.Second, func() {
-		lc.mutex.Lock()
-		defer lc.mutex.Unlock()
-		delete(lc.cacheMap, key)
-	})
+	expiryTime := time.Now().Add(EXPIRATION_TTL * time.Second)
+	lc.items[key] = &cacheItem{value: value, expiryTime: expiryTime}
 }
 
 func New() Cache {
-	return &localCache{
-		cacheMap: make(map[string]interface{}),
-	}
+	return &localCache{items: make(map[string]*cacheItem)}
 }
