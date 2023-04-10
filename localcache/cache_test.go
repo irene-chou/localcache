@@ -22,9 +22,7 @@ func (s *LocalCacheTestSuite) TestSetAndGet() {
 	value := "myValue"
 	s.localcache.Set(key, value)
 
-	result, ok := s.localcache.Get(key)
-	assert.True(s.T(), ok)
-	assert.Equal(s.T(), value, result)
+	s.assertCacheValue(key, value)
 }
 
 func (s *LocalCacheTestSuite) TestOverwrite() {
@@ -35,9 +33,7 @@ func (s *LocalCacheTestSuite) TestOverwrite() {
 	s.localcache.Set(key, value1)
 	s.localcache.Set(key, value2)
 
-	result, ok := s.localcache.Get(key)
-	assert.True(s.T(), ok)
-	assert.Equal(s.T(), value2, result)
+	s.assertCacheValue(key, value2)
 }
 
 func (s *LocalCacheTestSuite) TestExpiration() {
@@ -48,8 +44,7 @@ func (s *LocalCacheTestSuite) TestExpiration() {
 
 	time.Sleep((EXPIRATION_TTL + 1) * time.Second)
 
-	_, ok := s.localcache.Get(key)
-	assert.False(s.T(), ok)
+	s.assertCacheValueNotExists(key)
 }
 
 func (s *LocalCacheTestSuite) TestOverwriteAndExpiration() {
@@ -65,16 +60,24 @@ func (s *LocalCacheTestSuite) TestOverwriteAndExpiration() {
 
 	time.Sleep(((EXPIRATION_TTL / 2) + 1) * time.Second)
 
-	result, ok := s.localcache.Get(key)
-	assert.True(s.T(), ok)
-	assert.Equal(s.T(), value2, result)
+	s.assertCacheValue(key, value2)
 
 	time.Sleep((EXPIRATION_TTL / 2) * time.Second)
 
-	_, ok2 := s.localcache.Get(key)
-	assert.False(s.T(), ok2)
+	s.assertCacheValueNotExists(key)
 }
 
 func TestLocalCache(t *testing.T) {
 	suite.Run(t, new(LocalCacheTestSuite))
+}
+
+func (s *LocalCacheTestSuite) assertCacheValue(key, expectedValue string) {
+	value, ok := s.localcache.Get(key)
+	assert.True(s.T(), ok)
+	assert.Equal(s.T(), expectedValue, value)
+}
+
+func (s *LocalCacheTestSuite) assertCacheValueNotExists(key string) {
+	_, ok := s.localcache.Get(key)
+	assert.False(s.T(), ok)
 }
